@@ -15,6 +15,7 @@ import com.facebook.react.bridge.ReactApplicationContext;
 import com.facebook.react.bridge.ReactContextBaseJavaModule;
 import com.facebook.react.bridge.ReactMethod;
 
+import com.facebook.react.bridge.ReadableArray;
 import com.imin.library.SystemPropManager;
 import com.imin.printerlib.Callback;
 import com.imin.printerlib.IminPrintUtils;
@@ -61,12 +62,12 @@ public class IminPrinterModule extends ReactContextBaseJavaModule {
       public void run() {
         try {
           if (spiDeviceList.contains(deviceModel)) {
-            mIminPrintUtils.resetDevice();
-            mIminPrintUtils.initPrinter(IminPrintUtils.PrintConnectType.SPI);
-            mIminPrintUtils.getPrinterStatus(IminPrintUtils.PrintConnectType.SPI, new Callback() {
+            printUtils.resetDevice();
+            printUtils.initPrinter(IminPrintUtils.PrintConnectType.SPI);
+            printUtils.getPrinterStatus(IminPrintUtils.PrintConnectType.SPI, new Callback() {
               @Override
               public void callback(int status) {
-                toast("Print SPI status : "+status);
+                // toast("Print SPI status : "+status);
                 if (status == -1 && PrintUtils.getPrintStatus() == -1){
                   promise.reject(""+0, ""+status);
                 } else {
@@ -75,10 +76,10 @@ public class IminPrinterModule extends ReactContextBaseJavaModule {
               }
             });
           } else if (usbDeviceList.contains(deviceModel)) {
-            mIminPrintUtils.resetDevice();
-            mIminPrintUtils.initPrinter(IminPrintUtils.PrintConnectType.USB);
-            int status = mIminPrintUtils.getPrinterStatus(IminPrintUtils.PrintConnectType.USB);
-            toast("Printer USB Status : "+status);
+            printUtils.resetDevice();
+            printUtils.initPrinter(IminPrintUtils.PrintConnectType.USB);
+            int status = printUtils.getPrinterStatus(IminPrintUtils.PrintConnectType.USB);
+            // toast("Printer USB Status : "+status);
             promise.resolve(status);
           }
         } catch (Exception e) {
@@ -240,23 +241,46 @@ public class IminPrinterModule extends ReactContextBaseJavaModule {
     });
   }
 
-  /**
-   * @param text
-   * @param type      0 = Need to add a line break "n" at the end of the content to print it immediately,
-   *                  otherwise it will be cached in the buffer
-   *                  1 = Word Wrap
-   * @param promise
-   */
   @ReactMethod
-  public void printText(String text, int type, final Promise promise) {
+  public void printTextWordWrap(String text, final Promise promise) {
     final IminPrintUtils printUtils = mIminPrintUtils;
     final String mText = text;
-    final int mType = type;
     ThreadPoolManager.getInstance().executeTask(new Runnable() {
       @Override
       public void run() {
         try {
-          printUtils.printText(mText, mType);
+          printUtils.printText(mText, 1);
+          promise.resolve(null);
+        } catch (Exception e) {
+          e.printStackTrace();
+          Log.i(TAG, "ERROR: " + e.getMessage());
+          promise.reject("" + 0, e.getMessage());
+        }
+      }
+    });
+  }
+
+  /**
+   * @param textArray       Text Array (String)
+   * @param widthArray      Width of each Column, must be greater than 0 (Int)
+   * @param alignArray      Alignment Array (0 = Left, 1 = Center, 2 = Right)
+   * @param fontSizeArray   Font Size of each Column
+   * @param promise
+   */
+  @ReactMethod
+  public void printColumnsText(ReadableArray textArray, ReadableArray widthArray,
+                               ReadableArray alignArray, ReadableArray fontSizeArray,
+                               final Promise promise) {
+    final IminPrintUtils printUtils = mIminPrintUtils;
+    final String[] mTextArray = ArrayUtils.toArrayOfString(textArray);
+    final int[] mWidthArray = ArrayUtils.toArrayOfInteger(widthArray);
+    final int[] mAlignArray = ArrayUtils.toArrayOfInteger(alignArray);
+    final int[] mFontSizeArray = ArrayUtils.toArrayOfInteger(fontSizeArray);
+    ThreadPoolManager.getInstance().executeTask(new Runnable() {
+      @Override
+      public void run() {
+        try {
+          printUtils.printColumnsText(mTextArray, mWidthArray, mAlignArray, mFontSizeArray);
           promise.resolve(null);
         } catch (Exception e) {
           e.printStackTrace();

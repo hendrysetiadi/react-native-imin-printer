@@ -21,7 +21,7 @@ def safeExtGet(prop, fallback) {
 android {
     compileSdkVersion safeExtGet('IminPrinter_compileSdkVersion', 29)
     defaultConfig {
-        minSdkVersion safeExtGet('IminPrinter_minSdkVersion', 16)
+        minSdkVersion safeExtGet('IminPrinter_minSdkVersion', 23)
         targetSdkVersion safeExtGet('IminPrinter_targetSdkVersion', 29)
         versionCode 1
         versionName "1.0"
