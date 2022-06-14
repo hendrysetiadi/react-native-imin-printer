@@ -11,11 +11,7 @@ npm install react-native-imin-printer
 ## Usage
 
 ```js
-import { multiply } from "react-native-imin-printer";
-
-// ...
-
-const result = await multiply(3, 7);
+import ReactNativeIminPrinter from "react-native-imin-printer";
 ```
 
 ## Contributing

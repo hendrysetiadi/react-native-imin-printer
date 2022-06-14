@@ -1,12 +1,13 @@
 package com.hendrysetiadi.iminprinter;
 
 import android.graphics.Bitmap;
-import android.os.Message;
-import android.text.TextUtils;
+import android.graphics.BitmapFactory;
+import android.graphics.Canvas;
+import android.graphics.ColorMatrix;
+import android.graphics.ColorMatrixColorFilter;
+import android.graphics.Paint;
 import android.util.Base64;
 import android.util.Log;
-import android.view.View;
-import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 
@@ -16,6 +17,7 @@ import com.facebook.react.bridge.ReactContextBaseJavaModule;
 import com.facebook.react.bridge.ReactMethod;
 
 import com.facebook.react.bridge.ReadableArray;
+import com.imin.library.IminSDKManager;
 import com.imin.library.SystemPropManager;
 import com.imin.printerlib.Callback;
 import com.imin.printerlib.IminPrintUtils;
@@ -291,17 +293,34 @@ public class IminPrinterModule extends ReactContextBaseJavaModule {
     });
   }
 
+  @ReactMethod
+  public void openCashBox(final Promise promise) {
+    final IminPrintUtils printUtils = mIminPrintUtils;
+    ThreadPoolManager.getInstance().executeTask(new Runnable() {
+      @Override
+      public void run() {
+        try {
+          IminSDKManager.opencashBox();
+          promise.resolve(null);
+        } catch (Exception e) {
+          e.printStackTrace();
+          Log.i(TAG, "ERROR: " + e.getMessage());
+          promise.reject("" + 0, e.getMessage());
+        }
+      }
+    });
+  }
+
   /**
    * @param data      Base64 Image Data
-   * @param width
-   * @param height
    * @param promise
    */
   @ReactMethod
-  public void printSingleBitmap(String data, int width, int height, final Promise promise) {
+  public void printSingleBitmap(String data, final Promise promise) {
     final IminPrintUtils printUtils = mIminPrintUtils;
     byte[] decoded = Base64.decode(data, Base64.DEFAULT);
-    final Bitmap bitmap = bitMapUtils.decodeBitmap(decoded, width, height);
+    final Bitmap bitmap = invert(BitmapFactory.decodeByteArray(decoded, 0, decoded.length));
+
     ThreadPoolManager.getInstance().executeTask(new Runnable() {
       @Override
       public void run() {
@@ -319,7 +338,32 @@ public class IminPrinterModule extends ReactContextBaseJavaModule {
 
 
 
-  protected void toast(String message) {
-    Toast.makeText(reactApplicationContext, message, Toast.LENGTH_SHORT).show();
+  protected Bitmap invert(Bitmap src)
+  {
+    int height = src.getHeight();
+    int width = src.getWidth();
+
+    Bitmap bitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888);
+    Canvas canvas = new Canvas(bitmap);
+    Paint paint = new Paint();
+
+    ColorMatrix matrixGrayscale = new ColorMatrix();
+    matrixGrayscale.setSaturation(0);
+
+    ColorMatrix matrixInvert = new ColorMatrix();
+    matrixInvert.set(new float[]
+      {
+        -1.0f, 0.0f, 0.0f, 0.0f, 255.0f,
+        0.0f, -1.0f, 0.0f, 0.0f, 255.0f,
+        0.0f, 0.0f, -1.0f, 0.0f, 255.0f,
+        0.0f, 0.0f, 0.0f, 1.0f, 0.0f
+      });
+    matrixInvert.preConcat(matrixGrayscale);
+
+    ColorMatrixColorFilter filter = new ColorMatrixColorFilter(matrixInvert);
+    paint.setColorFilter(filter);
+
+    canvas.drawBitmap(src, 0, 0, paint);
+    return bitmap;
   }
 }
